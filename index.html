@@ -345,7 +345,8 @@ function vToday(){
     <button class="chip sm" onclick="quickLog('cardio')">Log cardio</button>
     <button class="chip sm" onclick="quickLog('hands')">Log hands</button>
   </div>
-  <p class="dim" style="margin-top:26px">Cardio and hand work have their own queues so they can't be crowded out by strength.</p>`;
+  <p class="dim" style="margin-top:26px">Cardio and hand work have their own queues so they can't be crowded out by strength.</p>
+  ${backupNudge()}`;
 }
 function qCard(c){
   const p=pressure(c),d=daysSince(c.id);
@@ -493,8 +494,49 @@ function vPlan(){
       ${c.rung<c.ladder.length-1?`<button class="chip sm" onclick="nudge('${c.id}',1)">Make it harder<br><span class="dim" style="font-size:11px">${c.ladder[c.rung+1]}</span></button>`:`<span class="chip sm dim" style="opacity:.4">Hardest already</span>`}
     </div>
   </div>`).join("")}
+  <h2>Backup</h2>
+  <p class="sub">Your log lives on this phone and nowhere else. Export every few weeks and put the file somewhere that survives a lost phone.</p>
+  <div class="stat"><span class="muted">Sessions</span><b class="mono">${S.sessions.length}</b></div>
+  <div class="stat"><span class="muted">Check-ins</span><b class="mono">${S.checkins.length}</b></div>
+  <div class="stat"><span class="muted">Last backup</span><b class="mono dim">${S.lastExport||"never"}</b></div>
+  <button class="btn quiet" onclick="exportData()">Export a backup file</button>
+  <label style="margin-top:16px">Restore</label>
+  <input type="file" accept="application/json,.json" onchange="importData(this)" style="font-family:var(--sans);font-size:13px;padding:9px">
+
   <h2>Reset</h2>
   <button class="btn ghost" onclick="if(confirm('Erase all logged data?')){S={cats:PLAN.map(c=>({...c})),sessions:[],checkins:[],baseline:false};save();go('today')}">Erase everything</button>`;
+}
+/* ---- backup: the log lives only on this phone, so make it portable ---- */
+function exportData(){
+  S.lastExport=today();save();
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=`training-${today()}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{URL.revokeObjectURL(url);render()},1500);
+}
+/* quiet nudge — no colour, no alarm */
+function backupNudge(){
+  if(S.sessions.length<8)return "";
+  const age=S.lastExport?Math.floor((dnum(today())-dnum(S.lastExport))/DAY):999;
+  if(age<28)return "";
+  return `<p class="dim" style="margin-top:14px">${S.sessions.length} sessions logged and ${S.lastExport?"no backup in "+age+" days":"no backup yet"}. Plan → Backup.</p>`;
+}
+function importData(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const p=JSON.parse(r.result);
+      if(!p||!Array.isArray(p.cats)||!Array.isArray(p.sessions))throw 0;
+      if(!confirm(`Restore ${p.sessions.length} sessions and ${(p.checkins||[]).length} check-ins?\n\nThis replaces what's on this phone now.`))return;
+      p.checkins=p.checkins||[];
+      PLAN.forEach(d=>{if(!p.cats.find(c=>c.id===d.id))p.cats.push({...d})});
+      S=p;save();go("prog");
+    }catch(e){alert("That file couldn't be read as a training backup.")}
+  };
+  r.readAsText(f);
+  input.value="";
 }
 function nudge(id,d){
   const c=S.cats.find(x=>x.id===id);
