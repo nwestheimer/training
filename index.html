@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1F1B19">
+<title>Training</title>
+<style>
+:root{
+  --kiln:#1F1B19;
+  --stone:#2C2622;
+  --stone-hi:#3A322C;
+  --slip:#EFE8DE;
+  --ash:#968A7E;
+  --ash-dim:#6B625A;
+  --celadon:#86A992;
+  --cobalt:#6B8FB8;
+  --wax:#D8C48A;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, ui-serif, serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--kiln);color:var(--slip);font-family:var(--sans);
+  font-size:16px;line-height:1.45;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:560px;margin:0 auto;padding:20px 18px 8px}
+h1{font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:-.01em;margin:0 0 2px}
+h2{font-family:var(--serif);font-size:19px;font-weight:400;margin:26px 0 10px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ash-dim);margin:0 0 14px}
+.muted{color:var(--ash);font-size:14px}
+.dim{color:var(--ash-dim);font-size:13px}
+.mono{font-family:var(--mono)}
+
+.banner{background:var(--stone);border-left:2px solid var(--wax);padding:11px 13px;border-radius:0 6px 6px 0;font-size:13.5px;color:var(--ash);margin-bottom:18px}
+
+/* ---- queue card ---- */
+.card{background:var(--stone);border-radius:11px;padding:14px 15px;margin-bottom:9px;position:relative;overflow:hidden}
+.card.sel{background:var(--stone-hi)}
+.card-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.cname{font-family:var(--serif);font-size:17.5px;line-height:1.25}
+.crung{font-family:var(--mono);font-size:12.5px;color:var(--ash);margin-top:4px;line-height:1.4}
+.cmeta{font-family:var(--mono);font-size:10.5px;color:var(--ash-dim);white-space:nowrap;letter-spacing:.04em}
+.bar{height:2px;background:#3A322C;border-radius:2px;margin-top:11px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:2px;transition:width .4s ease}
+.tag{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:3px;margin-right:5px;vertical-align:1px}
+.t-carry{background:rgba(107,143,184,.16);color:var(--cobalt)}
+.t-new{background:rgba(216,196,138,.14);color:var(--wax)}
+.t-up{background:rgba(134,169,146,.16);color:var(--celadon)}
+
+/* ---- buttons ---- */
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none}
+.btn{display:block;width:100%;background:var(--celadon);color:#17211B;border-radius:10px;padding:14px;font-weight:600;font-size:15.5px;margin-top:10px}
+.btn.ghost{background:transparent;color:var(--slip);border:1px solid var(--stone-hi)}
+.btn.quiet{background:var(--stone);color:var(--slip)}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.chip{background:var(--stone);color:var(--slip);border-radius:9px;padding:11px 8px;font-size:14px;text-align:center;border:1px solid transparent}
+.chip.on{border-color:var(--celadon);color:var(--celadon)}
+.chip.sm{font-size:12.5px;padding:9px 6px}
+input,select{width:100%;background:var(--kiln);border:1px solid var(--stone-hi);color:var(--slip);border-radius:8px;padding:11px;font-family:var(--mono);font-size:15px;margin-top:8px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--celadon);outline-offset:1px}
+label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash-dim);margin-top:14px}
+
+/* ---- nav ---- */
+nav{position:fixed;bottom:0;left:0;right:0;background:rgba(31,27,25,.96);backdrop-filter:blur(12px);border-top:1px solid var(--stone);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
+nav button{flex:1;background:none;color:var(--ash-dim);padding:13px 4px 15px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+nav button.on{color:var(--celadon)}
+
+/* ---- progress ---- */
+.stat{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--stone)}
+.stat b{font-family:var(--mono);font-weight:500;font-size:15px}
+.spark{display:block;width:100%;height:30px;margin-top:8px}
+.sub{font-size:13.5px;color:var(--ash);margin:4px 0 0}
+.empty{text-align:center;color:var(--ash-dim);font-size:14px;padding:34px 20px;font-family:var(--serif);font-style:italic}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<nav id="nav"></nav>
+
+<script>
+"use strict";
+
+/* ============ storage (falls back to memory if blocked) ============ */
+const store=(()=>{let mem={},ok=true;
+  try{localStorage.setItem("__t","1");localStorage.removeItem("__t")}catch(e){ok=false}
+  return{ok,
+    get(k){try{return ok?localStorage.getItem(k):(mem[k]??null)}catch(e){return mem[k]??null}},
+    set(k,v){try{ok?localStorage.setItem(k,v):mem[k]=v}catch(e){mem[k]=v}}};
+})();
+
+/* ============ the plan ============
+   rung = current index into ladder.
+   weight: climbing-supporting categories float up when time is short.
+   =================================================================== */
+const PLAN=[
+{id:"row",name:"Pull — rows",group:"s",weight:1.2,perWeek:2,rung:2,serves:"Climbing + posterior shoulder",
+ cue:"Stop just short of full elbow extension at the bottom.",
+ ladder:["TRX row, feet forward — 2×8","DB row 12.5kg — 2×6","DB row 15kg — 2×6","DB row 17.5kg — 2×6","DB row 20kg — 2×6"]},
+{id:"iso",name:"Isometric pull & lock-off",group:"s",weight:1.2,perWeek:2,rung:0,serves:"Climbing + joint control",
+ cue:"Isometrics are the safest strength for a loose joint. Never hold at near-straight arm.",
+ ladder:["Pronated isometric row 10kg — 2×10s","Pronated isometric row 12.5kg — 2×10s","Lock-off hold 90° — 3×5s each","Lock-off 45° + 90°, 3s each — 2 sets","Lock-off ladder 45/90/120 — stop short of straight"]},
+{id:"scap",name:"Scapular control & active hang",group:"s",weight:1.2,perWeek:2,rung:1,serves:"Climbing + shoulder stability",
+ cue:"Shoulders stay packed. If you sink into the joint, the set is over.",
+ ladder:["Scap push-up — 2×8","Active hang, feet assisted — 3×15s","Active hang — 3×20s","Scapular pull-up — 2×6","Scapular pull-up, slow — 2×10"]},
+{id:"push",name:"Push — horizontal",group:"s",weight:1.0,perWeek:2,rung:2,serves:"Antagonist to climbing",
+ cue:"Don't lock the elbows out at the top.",
+ ladder:["Elevated push-up, hands on box — 2×6","Bench 20kg — 2×6","Bench 22kg — 2×6","Bench 25kg — 2×6","Bench 27.5kg — 2×6"]},
+{id:"incl",name:"Push — incline & landmine",group:"s",weight:1.0,perWeek:2,rung:1,serves:"Pressing strength",
+ cue:"Press on an incline, not overhead — it keeps the shoulder out of its loosest position.",
+ ladder:["Landmine press 10kg — 2×6/side","Incline DB press 45°, 8kg — 2×6","Incline DB press 10kg — 2×6","Landmine press 15kg — 2×6/side","Incline DB press 12.5kg — 2×6"]},
+{id:"cuff",name:"Shoulder ER & posterior cuff",group:"s",weight:1.2,perWeek:2,rung:1,serves:"Stability + climbing",
+ cue:"Light load, high frequency. This is the work that protects everything else.",
+ ladder:["Band pull-apart — 2×15","Ori shoulder drill 5kg — 3×10","Ori drill + cable ER at neutral, light — 2×12","Cable ER neutral, moderate + prone Y/T 2kg","Half-kneeling cable ER — 2×12/side"]},
+{id:"knee",name:"Knee control & single leg",group:"s",weight:1.1,perWeek:2,rung:2,serves:"Hypermobility + climbing",
+ cue:"Soft knee at the top — never let it snap back. Watch it drifting inward.",
+ ladder:["Lateral step-down 20cm — 2×8/side","Tempo split squat, bodyweight — 2×8/side","Bulgarian split squat 10kg — 2×6/side","Bulgarian split squat 12.5kg — 2×6/side","Pistol with block — 2×6/side"]},
+{id:"glute",name:"Hip abduction & glute med",group:"s",weight:1.1,perWeek:2,rung:0,serves:"Hip stability",
+ cue:"Start light — this one climbs quickly once it gets going.",
+ ladder:["Side-lying abduction — 2×15/side","Glute bridge 2×15 + side-lying 2×15","Banded lateral walk — 2×20 steps","Single-leg bridge — 2×10/side","Cable standing abduction — 2×12/side"]},
+{id:"hinge",name:"Hinge",group:"s",weight:1.0,perWeek:2,rung:1,serves:"Posterior chain + approaches",
+ cue:"Hips move, spine doesn't.",
+ ladder:["Bodyweight RDL — 2×10","RDL 15kg — 2×6","Single-leg RDL, fingertip support — 2×8/side","Single-leg RDL 8kg — 2×6/side","Single-leg RDL 12kg — 2×6/side"]},
+{id:"core",name:"Anti-rotation core",group:"s",weight:1.0,perWeek:2,rung:1,serves:"Body tension + trunk control",
+ cue:"Resist the rotation. Nothing should twist.",
+ ladder:["Dead bug — 2×10/side","Side plank — 3×30s/side","Half-kneeling Pallof 2×10/side + body saw","Standing Pallof — 2×12/side","Suitcase carry — 2×30m"]},
+{id:"bal",name:"Balance & proprioception",group:"s",weight:1.0,perWeek:2,rung:0,serves:"Joint position sense",
+ cue:"The category most specific to your joints. Quiet work, big return.",
+ ladder:["Single-leg stance — 2×30s/side","Single-leg, eyes closed — 2×20s/side","Single-leg reach, 3 directions — 5/side","Single-leg on cushion — 2×30s/side","Single-leg cushion + reach — 5/side"]},
+{id:"cardio",name:"Cardio",group:"c",weight:1.0,perWeek:2,rung:0,serves:"Aerobic base",
+ cue:"Conversational pace. If you can't talk, slow down.",
+ ladder:["Stairmaster 20 min, conversational","Stairmaster 25 min, conversational","Stairmaster 30 min, conversational","30 min with 4×2 min incline blocks","30 min with 6×1 min intervals"]},
+{id:"hands",name:"Thumbs & hands",group:"h",weight:1.0,perWeek:3,rung:0,serves:"CMC stability — desk-friendly",
+ cue:"Silent and invisible. Keep a rubber band at your desk.",
+ ladder:[
+  "First dorsal interosseous 8×5s · opposition arches · lumbrical holds 5×10s",
+  "Add band palmar abduction — 12/hand",
+  "Add band finger extension — 15/hand",
+  "All five, thicker band",
+  "All five, thicker band, 2 rounds"]}
+];
+
+const AREAS=["Thumbs / fingers","Wrists","Elbows","Shoulders","Hips","Knees","Low back"];
+const DAY=864e5;
+/* body region — used to keep a single session from stacking up on one area */
+const REGION={row:"pull",iso:"pull",scap:"pull",push:"press",incl:"press",cuff:"press",
+  knee:"legs",glute:"legs",hinge:"legs",bal:"legs",core:"trunk"};
+
+/* order within a session:
+   0 balance first, while the nervous system is fresh — practising it tired
+     trains sloppy control instead of good control
+   1 heaviest and most technical, best control still available
+   2 lighter accessory work
+   3 cuff and scapular work last — light and fatigue-tolerant */
+const ORDER={bal:0,knee:1,hinge:1,push:1,incl:1,row:1,iso:1,scap:1,core:2,glute:2,cuff:3};
+
+/* on a climbing day, pulling tissue is already loaded — push those categories
+   down and float up the work that doesn't compete for the same recovery */
+const CLIMB_ADJ={row:-0.5,iso:-0.5,scap:-0.5,knee:0.3,hinge:0.3,glute:0.3,core:0.3,bal:0.3};
+
+/* ============ state ============ */
+let S=load();
+function load(){
+  const raw=store.get("hm.v1");
+  if(raw){try{const p=JSON.parse(raw);
+    // merge in any categories added since last save
+    PLAN.forEach(d=>{if(!p.cats.find(c=>c.id===d.id))p.cats.push({...d})});
+    return p}catch(e){}}
+  return{cats:PLAN.map(c=>({...c})),sessions:[],checkins:[],baseline:false};
+}
+function save(){store.set("hm.v1",JSON.stringify(S))}
+const today=()=>new Date().toISOString().slice(0,10);
+const dnum=s=>new Date(s+"T12:00:00").getTime();
+
+/* ============ priority engine ============
+   pressure = days since last done / target interval
+   A category never "fails" — it only rises. Carryover adds one bump,
+   capped, so skipping a week can't compound into debt.
+   ========================================================================= */
+function lastDone(id){
+  let best=null;
+  S.sessions.forEach(s=>s.items.forEach(i=>{
+    if(i.catId===id&&i.done&&(!best||dnum(s.date)>dnum(best)))best=s.date}));
+  return best;
+}
+function daysSince(id){const l=lastDone(id);return l===null?99:Math.floor((dnum(today())-dnum(l))/DAY)}
+function interval(c){return 7/c.perWeek}
+function pressure(c){return Math.min(daysSince(c.id)/interval(c),1.6)}
+function carried(id){ // queued last session but not completed
+  for(let i=S.sessions.length-1;i>=0;i--){
+    const it=S.sessions[i].items.find(x=>x.catId===id);
+    if(it)return !it.done;
+  }
+  return false;
+}
+function painPenalty(id){
+  const c=S.cats.find(x=>x.id===id);
+  const recent=S.checkins.filter(k=>dnum(today())-dnum(k.date)<10&&k.type==="joint");
+  return recent.length&&c.group==="s"?0.15*Math.min(recent.length,3):0;
+}
+const climbing=()=>S.climbDate===today();
+function score(c){
+  return pressure(c)*c.weight + (carried(c.id)?0.35:0) - painPenalty(c.id)
+    + (climbing()?(CLIMB_ADJ[c.id]||0):0);
+}
+function queue(group){
+  return S.cats.filter(c=>c.group===group).sort((a,b)=>score(b)-score(a));
+}
+/* Take from the top of the queue, but cap how many can come from one region,
+   so a 25-minute session can't turn into five straight leg categories.
+   If the cap leaves the session short, relax it and fill from the queue. */
+function buildSession(mins){
+  const n=mins<=15?3:mins<=25?5:7;
+  const q=queue("s"),cap=Math.ceil(n/3),used={},out=[];
+  q.forEach(c=>{const r=REGION[c.id]||"other";
+    if(out.length<n&&(used[r]||0)<cap){out.push(c);used[r]=(used[r]||0)+1}});
+  q.forEach(c=>{if(out.length<n&&!out.includes(c))out.push(c)});
+  /* selection is by priority; order is by fatigue tier */
+  return out.sort((a,b)=>(ORDER[a.id]??2)-(ORDER[b.id]??2)||score(b)-score(a));
+}
+
+/* ---- consistency: rolling %, never a streak ---- */
+function consistency(weeks){
+  const cut=dnum(today())-weeks*7*DAY;
+  const done=S.sessions.filter(s=>dnum(s.date)>=cut)
+    .reduce((a,s)=>a+s.items.filter(i=>i.done&&S.cats.find(c=>c.id===i.catId)?.group==="s").length,0);
+  const target=S.cats.filter(c=>c.group==="s").reduce((a,c)=>a+c.perWeek,0)*weeks;
+  return target?Math.min(done/target,1.3):0;
+}
+function sessionsAtRung(c){
+  let n=0;
+  S.sessions.forEach(s=>s.items.forEach(i=>{
+    if(i.catId===c.id&&i.done&&i.rung===c.rung)n++}));
+  return n;
+}
+function recentQuality(c,k){
+  const q=[];
+  for(let i=S.sessions.length-1;i>=0&&q.length<k;i--){
+    const it=S.sessions[i].items.find(x=>x.catId===c.id&&x.done);
+    if(it)q.push(it.quality);
+  }
+  return q;
+}
+/* level-up gate: consistency AND control AND no joint flare AND time at rung */
+function readyToLevel(c){
+  if(c.rung>=c.ladder.length-1)return false;
+  if(sessionsAtRung(c)<6)return false;
+  const q=recentQuality(c,3);
+  if(q.length<3||q.some(x=>x!=="clean"))return false;
+  if(painPenalty(c.id)>0)return false;
+  return consistency(4)>=0.7;
+}
+
+/* ============ views ============ */
+let view="today",draft=null,baselineIx=0;
+
+function render(){
+  const a=document.getElementById("app");
+  a.innerHTML=(store.ok?"":`<div class="banner"><b>Storage is blocked here.</b> Nothing will be saved. Open this file in Safari — or host it and add it to your home screen — and your data will persist.</div>`)
+    +({today:vToday,session:vSession,base:vBase,prog:vProg,plan:vPlan}[view])();
+  document.getElementById("nav").innerHTML=
+    [["today","Today"],["prog","Progress"],["plan","Plan"]]
+    .map(([k,l])=>`<button class="${view===k||(k==='today'&&view==='session')?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
+  window.scrollTo(0,0);
+}
+function go(v){view=v;draft=null;render()}
+
+/* ---- morning-after check-in prompt ---- */
+function checkinCard(){
+  const last=S.sessions[S.sessions.length-1];
+  if(!last)return "";
+  const gap=Math.floor((dnum(today())-dnum(last.date))/DAY);
+  if(gap<1||gap>2)return "";
+  if(S.checkins.some(k=>k.date===today()))return "";
+  return `<div class="card"><div class="cname">How does today feel?</div>
+   <p class="sub">${gap} day${gap>1?"s":""} after your last session. Muscle soreness means the load landed. Joint ache means a rung too high.</p>
+   <div class="row" style="margin-top:12px">
+     <button class="chip sm" onclick="chk('none')">Fine</button>
+     <button class="chip sm" onclick="chk('muscle')">Muscle sore</button>
+     <button class="chip sm" onclick="chk('joint')">Joint ache</button>
+   </div></div>`;
+}
+function chk(t){
+  if(t==="joint"){
+    const a=prompt("Which joint?\n"+AREAS.map((x,i)=>`${i+1}. ${x}`).join("\n"));
+    const ix=parseInt(a,10)-1;
+    S.checkins.push({date:today(),type:"joint",area:AREAS[ix]||"unspecified"});
+  } else S.checkins.push({date:today(),type:t});
+  save();render();
+}
+
+/* ---- TODAY ---- */
+function vToday(){
+  if(!S.baseline)return `
+    <p class="eyebrow">Week one</p>
+    <h1>Find your rungs</h1>
+    <p class="muted" style="margin-top:10px">Before the queue means anything, it needs to know where you're starting. Work up each ladder until <b style="color:var(--slip);font-weight:600">control</b> breaks — not until you can't do another rep. With loose joints, control gives out first, and that's the number that matters.</p>
+    <p class="muted">Stop the set when you see: a knee snapping back or drifting in, a shoulder shrugging or sinking, an elbow locking out, a thumb collapsing, or a real tremor.</p>
+    <button class="btn" onclick="view='base';baselineIx=0;render()">Start the baseline</button>
+    <button class="btn quiet" onclick="S.baseline=true;save();render()">Skip — start from the suggested rungs</button>`;
+
+  const q=queue("s"),up=S.cats.filter(readyToLevel);
+  const cardio=S.cats.find(c=>c.id==="cardio"),hands=S.cats.find(c=>c.id==="hands");
+  return `
+  <p class="eyebrow">${new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p>
+  <h1>What's risen</h1>
+  <p class="sub">Nothing here is overdue. It's just sorted by what would help most.</p>
+  ${checkinCard()}
+  ${up.length?`<div class="card"><span class="tag t-up">Ready</span>
+    <div class="cname" style="margin-top:8px">${up.map(c=>c.name).join(", ")} ${up.length>1?"look":"looks"} ready to move up</div>
+    <p class="sub">Consistent, controlled, no joint complaints.</p>
+    ${up.map(c=>`<button class="btn quiet" onclick="levelUp('${c.id}')">Advance ${c.name} →</button>`).join("")}
+    </div>`:""}
+
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <div style="flex:1">
+      <div class="cname" style="font-size:16px">Climbing today?</div>
+      <p class="sub" style="font-size:12.5px">${climbing()
+        ?"Pulling work moved down. Legs, hips, core and balance moved up."
+        :"Re-ranks the queue around what your shoulders are already doing."}</p>
+    </div>
+    <button class="chip sm ${climbing()?'on':''}" style="flex:0 0 74px" onclick="toggleClimb()">${climbing()?"Yes":"No"}</button>
+  </div>
+
+  <h2>How long do you have?</h2>
+  <div class="row">
+    ${[15,25,35].map(m=>`<button class="chip" onclick="startSession(${m})">${m} min</button>`).join("")}
+  </div>
+  <p class="dim" style="margin-top:9px">Sessions run balance first while you're fresh, then the heavy and technical work, then cuff and scapular work last.</p>
+
+  <h2>The queue</h2>
+  ${q.map(c=>qCard(c)).join("")}
+
+  <h2>Separate queues</h2>
+  ${qCard(cardio)}${qCard(hands)}
+  <div class="row">
+    <button class="chip sm" onclick="quickLog('cardio')">Log cardio</button>
+    <button class="chip sm" onclick="quickLog('hands')">Log hands</button>
+  </div>
+  <p class="dim" style="margin-top:26px">Cardio and hand work have their own queues so they can't be crowded out by strength.</p>`;
+}
+function qCard(c){
+  const p=pressure(c),d=daysSince(c.id);
+  const col=p>=1?"var(--cobalt)":"var(--celadon)";
+  return `<div class="card">
+    <div class="card-top">
+      <div style="flex:1">
+        ${carried(c.id)?'<span class="tag t-carry">Carried</span>':""}${d===99?'<span class="tag t-new">Not started</span>':""}
+        <div class="cname">${c.name}</div>
+        <div class="crung">${c.ladder[c.rung]}</div>
+      </div>
+      <div class="cmeta">${d===99?"—":d===0?"today":d+"d"}</div>
+    </div>
+    <div class="bar"><i style="width:${Math.min(p/1.6*100,100)}%;background:${col}"></i></div>
+  </div>`;
+}
+function toggleClimb(){S.climbDate=climbing()?null:today();save();render()}
+function levelUp(id){
+  const c=S.cats.find(x=>x.id===id);c.rung++;save();render();
+}
+
+/* ---- SESSION ---- */
+function startSession(m){
+  draft={mins:m,items:buildSession(m).map(c=>({catId:c.id,rung:c.rung,done:false,quality:null,note:""})),pain:null};
+  view="session";render();
+}
+function vSession(){
+  const done=draft.items.filter(i=>i.done).length;
+  return `<p class="eyebrow">${draft.mins} minutes · ${done}/${draft.items.length} logged</p>
+  <h1>Session</h1>
+  <p class="sub">Log what you do. Skipping something is fine — it carries into the next queue, it doesn't disappear.</p>
+  ${draft.items.map((it,ix)=>{
+    const c=S.cats.find(x=>x.id===it.catId);
+    return `<div class="card ${it.done?'sel':''}">
+      <div class="cname">${c.name}</div>
+      <div class="crung">${c.ladder[it.rung]}</div>
+      <p class="dim" style="margin-top:7px">${c.cue}</p>
+      <label>How did the joint feel?</label>
+      <div class="row" style="margin-top:8px">
+        <button class="chip sm ${it.quality==='clean'?'on':''}" onclick="setQ(${ix},'clean')">Controlled</button>
+        <button class="chip sm ${it.quality==='shaky'?'on':''}" onclick="setQ(${ix},'shaky')">Shaky</button>
+        <button class="chip sm ${it.done===false&&it.quality==='skip'?'on':''}" onclick="setQ(${ix},'skip')">Didn't do it</button>
+      </div>
+      <input placeholder="note — load, reps, anything" value="${it.note}" oninput="draft.items[${ix}].note=this.value">
+    </div>`}).join("")}
+  <h2>Anything hurt?</h2>
+  <div class="row" style="flex-wrap:wrap">
+    <button class="chip sm ${draft.pain===null?'on':''}" onclick="draft.pain=null;render()" style="flex:1 1 30%">No</button>
+    ${AREAS.map(a=>`<button class="chip sm ${draft.pain===a?'on':''}" onclick="draft.pain='${a}';render()" style="flex:1 1 30%">${a}</button>`).join("")}
+  </div>
+  <button class="btn" onclick="finish()">Save session</button>
+  <button class="btn ghost" onclick="go('today')">Discard</button>`;
+}
+function setQ(ix,q){
+  const it=draft.items[ix];
+  it.quality=q;it.done=(q!=="skip");
+  render();
+}
+function finish(){
+  S.sessions.push({date:today(),items:draft.items});
+  if(draft.pain)S.checkins.push({date:today(),type:"joint",area:draft.pain});
+  save();go("today");
+}
+function quickLog(id){
+  const c=S.cats.find(x=>x.id===id);
+  if(!confirm(`Log: ${c.ladder[c.rung]}?`))return;
+  S.sessions.push({date:today(),items:[{catId:id,rung:c.rung,done:true,quality:"clean",note:""}]});
+  save();render();
+}
+
+/* ---- BASELINE ---- */
+function vBase(){
+  const cats=S.cats.filter(c=>c.group==="s");
+  if(baselineIx>=cats.length){
+    return `<h1>Baseline set</h1>
+    <p class="muted" style="margin-top:10px">Each category now starts one rung below what you tested, or at the same rung with lighter volume. Peak capacity on a fresh test day isn't repeatable weekly capacity — that gap is where the flare comes from.</p>
+    <button class="btn" onclick="S.baseline=true;save();go('today')">Open the queue</button>`;
+  }
+  const c=cats[baselineIx];
+  return `<p class="eyebrow">Baseline ${baselineIx+1} of ${cats.length}</p>
+  <h1>${c.name}</h1>
+  <p class="sub">${c.serves}</p>
+  <p class="muted" style="margin-top:12px">${c.cue}</p>
+  <label>Highest rung you can hold with clean control</label>
+  ${c.ladder.map((l,i)=>`<button class="chip sm" style="width:100%;text-align:left;margin-top:7px" onclick="setBase(${i})">${i+1}. ${l}</button>`).join("")}
+  <button class="btn ghost" onclick="setBase(${c.rung})">Keep the suggested rung</button>`;
+}
+function setBase(i){
+  const cats=S.cats.filter(c=>c.group==="s");
+  cats[baselineIx].rung=Math.max(0,i-1); // start one below tested
+  baselineIx++;save();render();
+}
+
+/* ---- PROGRESS ---- */
+function vProg(){
+  if(!S.sessions.length)return `<h1>Progress</h1><div class="empty">Log a session and this fills in.</div>`;
+  const c4=consistency(4),c12=consistency(12);
+  const weeks=[];
+  for(let w=7;w>=0;w--){
+    const hi=dnum(today())-w*7*DAY,lo=hi-7*DAY;
+    weeks.push(S.sessions.filter(s=>dnum(s.date)>lo&&dnum(s.date)<=hi)
+      .reduce((a,s)=>a+s.items.filter(i=>i.done).length,0));
+  }
+  const max=Math.max(...weeks,1);
+  const joint=S.checkins.filter(k=>k.type==="joint");
+  const byArea={};joint.forEach(k=>byArea[k.area]=(byArea[k.area]||0)+1);
+  return `<p class="eyebrow">Rolling window · never a streak</p>
+  <h1>Progress</h1>
+  <div class="stat"><span class="muted">Last 4 weeks</span><b style="color:var(--celadon)">${Math.round(c4*100)}%</b></div>
+  <div class="stat"><span class="muted">Last 12 weeks</span><b>${Math.round(c12*100)}%</b></div>
+  <div class="stat"><span class="muted">Sessions logged</span><b>${S.sessions.length}</b></div>
+  <p class="dim" style="margin-top:8px">A zero week pulls this down a little and it recovers. There is nothing here to break.</p>
+
+  <h2>Items per week</h2>
+  <svg class="spark" viewBox="0 0 240 30" preserveAspectRatio="none" aria-hidden="true">
+    ${weeks.map((v,i)=>`<rect x="${i*30+4}" y="${30-Math.max(v/max*28,1.5)}" width="22" height="${Math.max(v/max*28,1.5)}" rx="1.5" fill="${i===7?"var(--celadon)":"var(--stone-hi)"}"/>`).join("")}
+  </svg>
+  <p class="dim">Eight weeks. Rightmost is this week.</p>
+
+  <h2>Where you are</h2>
+  ${S.cats.filter(c=>c.group==="s").map(c=>`<div class="stat">
+    <span><span class="muted">${c.name}</span><br><span class="dim mono">${c.ladder[c.rung]}</span></span>
+    <b class="dim">${sessionsAtRung(c)}×</b></div>`).join("")}
+
+  <h2>Joint signals</h2>
+  ${joint.length?Object.entries(byArea).sort((a,b)=>b[1]-a[1]).map(([a,n])=>
+    `<div class="stat"><span class="muted">${a}</span><b>${n}</b></div>`).join("")
+    +`<p class="dim" style="margin-top:10px">Three or more in an area means drop that category a rung. That's information, not a setback.</p>`
+    :`<p class="dim">Nothing logged. Good.</p>`}`;
+}
+
+/* ---- PLAN ---- */
+function vPlan(){
+  return `<p class="eyebrow">Categories and ladders</p>
+  <h1>The plan</h1>
+  <p class="sub">Ladders progress control first, load last. Editing here is safe — the queue logic doesn't care what the exercises are.</p>
+  ${S.cats.map(c=>`<div class="card">
+    <div class="cname">${c.name}</div>
+    <div class="crung" style="color:var(--ash-dim)">${c.serves} · ${c.perWeek}× per week</div>
+    ${c.ladder.map((l,i)=>`<div style="display:flex;gap:9px;margin-top:8px;align-items:baseline">
+      <span class="mono" style="font-size:11px;color:${i===c.rung?"var(--celadon)":"var(--ash-dim)"}">${i===c.rung?"▸":" "}</span>
+      <span style="font-size:13.5px;color:${i===c.rung?"var(--slip)":"var(--ash-dim)"}">${l}</span></div>`).join("")}
+    <div class="row" style="margin-top:12px">
+      ${c.rung>0?`<button class="chip sm" onclick="nudge('${c.id}',-1)">Make it easier<br><span class="dim" style="font-size:11px">${c.ladder[c.rung-1]}</span></button>`:`<span class="chip sm dim" style="opacity:.4">Easiest already</span>`}
+      ${c.rung<c.ladder.length-1?`<button class="chip sm" onclick="nudge('${c.id}',1)">Make it harder<br><span class="dim" style="font-size:11px">${c.ladder[c.rung+1]}</span></button>`:`<span class="chip sm dim" style="opacity:.4">Hardest already</span>`}
+    </div>
+  </div>`).join("")}
+  <h2>Reset</h2>
+  <button class="btn ghost" onclick="if(confirm('Erase all logged data?')){S={cats:PLAN.map(c=>({...c})),sessions:[],checkins:[],baseline:false};save();go('today')}">Erase everything</button>`;
+}
+function nudge(id,d){
+  const c=S.cats.find(x=>x.id===id);
+  c.rung=Math.max(0,Math.min(c.ladder.length-1,c.rung+d));save();render();
+}
+
+render();
+</script>
+</body>
+</html>
