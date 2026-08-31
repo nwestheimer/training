@@ -135,6 +135,9 @@ const PLAN=[
 {id:"bal",name:"Balance & proprioception",group:"s",weight:1.0,perWeek:2,rung:0,serves:"Joint position sense",
  cue:"The category most specific to your joints. Quiet work, big return.",
  ladder:["Single-leg stance — 2×30s/side","Single-leg, eyes closed — 2×20s/side","Single-leg reach, 3 directions — 5/side","Single-leg on cushion — 2×30s/side","Single-leg cushion + reach — 5/side"]},
+{id:"climb",name:"Climbing",group:"x",weight:1.0,perWeek:2,rung:0,serves:"On the wall",
+ cue:"Logged on its own. Pulling volume the strength queue accounts for.",
+ ladder:["Session"]},
 {id:"cardio",name:"Cardio",group:"c",weight:1.0,perWeek:2,rung:0,serves:"Aerobic base",
  cue:"Conversational pace. If you can't talk, slow down.",
  ladder:["Stairmaster 20 min, conversational","Stairmaster 25 min, conversational","Stairmaster 30 min, conversational","30 min with 4×2 min incline blocks","30 min with 6×1 min intervals"]},
@@ -149,6 +152,30 @@ const PLAN=[
 ];
 
 const AREAS=["Thumbs / fingers","Wrists","Elbows","Shoulders","Hips","Knees","Low back"];
+const CARDIO_ACTS=["Walk","Run","Hike","Stairmaster","Bike","Elliptical","Other"];
+const CLIMB_STYLES=["Gym bouldering","Gym ropes","Sport","Trad","Multipitch"];
+
+/* No-equipment version of each rung, same index. Rung numbers are shared, so
+   switching modes never moves you up or down — it only changes the tool. */
+const HOME={
+row:["Band row, anchored low — 2×12","Band row, heavier band — 2×10","Backpack row — 2×10/side","Backpack row, slow lower — 2×8/side","Single-arm band row, max tension — 2×10/side"],
+iso:["Isometric band row hold — 2×15s","Isometric band row, heavier — 2×15s","Door-frame isometric pull — 3×10s","Isometric band hold at 90° — 3×8s","Towel isometric pull, self-resisted — 3×10s"],
+scap:["Scap push-up — 2×8","Prone scap retraction on floor — 2×10","Wall slide with band — 2×12","Scap push-up, feet elevated — 2×10","Prone Y-T-W, no weight — 2×8 each"],
+push:["Push-up, hands on a chair — 2×8","Push-up on knees — 2×10","Push-up — 2×8","Push-up, 3s lower — 2×8","Push-up, feet elevated — 2×8"],
+incl:["Band press at an upward angle — 2×12","Band press, heavier — 2×10","Push-up, hands elevated 30cm — 2×10","Push-up, hands elevated, 3s lower — 2×8","Single-arm band press — 2×10/side"],
+cuff:["Band pull-apart — 2×15","Band external rotation at side — 2×12/side","Band pull-apart + band ER — 2×15","Prone Y/T on floor, no weight — 2×10","Half-kneeling band ER — 2×12/side"],
+knee:["Lateral step-down off a stair — 2×8/side","Tempo split squat — 2×8/side","Split squat, loaded backpack — 2×8/side","Rear-foot-elevated split squat on a chair — 2×8/side","Pistol to a chair — 2×6/side"],
+glute:["Side-lying abduction — 2×15/side","Glute bridge 2×15 + side-lying 2×15","Banded lateral walk — 2×20 steps","Single-leg bridge — 2×10/side","Single-leg bridge, foot elevated — 2×12/side"],
+hinge:["Bodyweight RDL — 2×10","Single-leg RDL, fingertip support — 2×8/side","Single-leg RDL, loaded backpack — 2×8/side","Single-leg RDL, heavier pack — 2×6/side","Band pull-through — 2×15"],
+core:["Dead bug — 2×10/side","Side plank — 3×30s/side","Band Pallof, anchored — 2×10/side","Standing band Pallof — 2×12/side","Backpack suitcase carry — 2×30m"],
+bal:null /* already needs nothing */
+};
+const homeMode=()=>!!S.home;
+function rungText(c,r){
+  const i=(r===undefined?c.rung:r);
+  const alt=homeMode()&&HOME[c.id];
+  return (alt&&alt[i])||c.ladder[i]||c.ladder[0];
+}
 const DAY=864e5;
 /* body region — used to keep a single session from stacking up on one area */
 const REGION={row:"pull",iso:"pull",scap:"pull",push:"press",incl:"press",cuff:"press",
@@ -265,10 +292,10 @@ let view="today",draft=null,baselineIx=0;
 function render(){
   const a=document.getElementById("app");
   a.innerHTML=(store.ok?"":`<div class="banner"><b>Storage is blocked here.</b> Nothing will be saved. Open this file in Safari — or host it and add it to your home screen — and your data will persist.</div>`)
-    +({today:vToday,session:vSession,base:vBase,prog:vProg,plan:vPlan}[view])();
+    +({today:vToday,session:vSession,base:vBase,prog:vProg,plan:vPlan,climb:vClimb,cardio:vCardio}[view])();
   document.getElementById("nav").innerHTML=
     [["today","Today"],["prog","Progress"],["plan","Plan"]]
-    .map(([k,l])=>`<button class="${view===k||(k==='today'&&view==='session')?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
+    .map(([k,l])=>`<button class="${view===k||(k==='today'&&["session","climb","cardio"].includes(view))?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
   window.scrollTo(0,0);
 }
 function go(v){view=v;draft=null;render()}
@@ -308,7 +335,7 @@ function vToday(){
     <button class="btn quiet" onclick="S.baseline=true;save();render()">Skip — start from the suggested rungs</button>`;
 
   const q=queue("s"),up=S.cats.filter(readyToLevel);
-  const cardio=S.cats.find(c=>c.id==="cardio"),hands=S.cats.find(c=>c.id==="hands");
+  const hands=S.cats.find(c=>c.id==="hands");
   return `
   <p class="eyebrow">${new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p>
   <h1>What's risen</h1>
@@ -316,19 +343,26 @@ function vToday(){
   ${checkinCard()}
   ${up.length?`<div class="card"><span class="tag t-up">Ready</span>
     <div class="cname" style="margin-top:8px">${up.map(c=>c.name).join(", ")} ${up.length>1?"look":"looks"} ready to move up</div>
-    <p class="sub">Consistent, controlled, no joint complaints.</p>
+    <p class="sub">Consistent, controlled, no discomfort logged.</p>
     ${up.map(c=>`<button class="btn quiet" onclick="levelUp('${c.id}')">Advance ${c.name} →</button>`).join("")}
     </div>`:""}
 
+  <h2>Activity</h2>
+  ${actRow("climb","Climbing",climbing()?"Logged today":"Log a session","openClimb()")}
+  ${actRow("cardio","Cardio",cardioLast(),"openCardio()")}
+  ${actRow("hands","Thumbs & hands",rungText(hands),"quickLog('hands')")}
+
+  <h2>Strength</h2>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
     <div style="flex:1">
-      <div class="cname" style="font-size:16px">Climbing today?</div>
-      <p class="sub" style="font-size:12.5px">${climbing()
-        ?"Pulling work moved down. Legs, hips, core and balance moved up."
-        :"Re-ranks the queue around what your shoulders are already doing."}</p>
+      <div class="cname" style="font-size:16px">${homeMode()?"No equipment":"Full gym"}</div>
+      <p class="sub" style="font-size:12.5px">${homeMode()
+        ?"Bands, bodyweight and a loaded backpack. Same rungs, different tools."
+        :"Weights and cables available."}</p>
     </div>
-    <button class="chip sm ${climbing()?'on':''}" style="flex:0 0 74px" onclick="toggleClimb()">${climbing()?"Yes":"No"}</button>
+    <button class="chip sm" style="flex:0 0 74px" onclick="S.home=!S.home;save();render()">Switch</button>
   </div>
+  ${climbing()?`<p class="dim" style="margin:2px 0 12px">Climbing logged today — pulling work moved down the queue, legs and core moved up.</p>`:""}
 
   <h2>How long do you have?</h2>
   <div class="row">
@@ -338,15 +372,25 @@ function vToday(){
 
   <h2>The queue</h2>
   ${q.map(c=>qCard(c)).join("")}
-
-  <h2>Separate queues</h2>
-  ${qCard(cardio)}${qCard(hands)}
-  <div class="row">
-    <button class="chip sm" onclick="quickLog('cardio')">Log cardio</button>
-    <button class="chip sm" onclick="quickLog('hands')">Log hands</button>
-  </div>
-  <p class="dim" style="margin-top:26px">Cardio and hand work have their own queues so they can't be crowded out by strength.</p>
   ${backupNudge()}`;
+}
+function actRow(id,name,sub,fn){
+  const c=S.cats.find(x=>x.id===id),d=daysSince(id);
+  return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <div style="flex:1;min-width:0">
+      <div class="cname" style="font-size:16px">${name}</div>
+      <p class="sub" style="font-size:12.5px">${sub}</p>
+    </div>
+    <div style="text-align:right;flex:0 0 auto">
+      <div class="cmeta" style="margin-bottom:6px">${d===99?"—":d===0?"today":d+"d"}</div>
+      <button class="chip sm" style="padding:8px 13px" onclick="${fn}">Log</button>
+    </div>
+  </div>`;
+}
+function cardioLast(){
+  for(let i=S.sessions.length-1;i>=0;i--){const s=S.sessions[i];
+    if(s.kind==="cardio")return `${s.activity} · ${s.minutes} min${s.distance?" · "+s.distance:""}`}
+  return "Nothing logged yet";
 }
 function qCard(c){
   const p=pressure(c),d=daysSince(c.id);
@@ -356,13 +400,65 @@ function qCard(c){
       <div style="flex:1">
         ${carried(c.id)?'<span class="tag t-carry">Carried</span>':""}${d===99?'<span class="tag t-new">Not started</span>':""}
         <div class="cname">${c.name}</div>
-        <div class="crung">${c.ladder[c.rung]}</div>
+        <div class="crung">${rungText(c)}</div>
       </div>
       <div class="cmeta">${d===99?"—":d===0?"today":d+"d"}</div>
     </div>
     <div class="bar"><i style="width:${Math.min(p/1.6*100,100)}%;background:${col}"></i></div>
   </div>`;
 }
+/* ---- CLIMBING & CARDIO LOGS ---- */
+function openClimb(){draft={style:CLIMB_STYLES[0],minutes:90,note:""};view="climb";render()}
+function openCardio(){draft={activity:CARDIO_ACTS[0],minutes:20,distance:"",note:""};view="cardio";render()}
+
+function vClimb(){
+  return `<p class="eyebrow">Log</p><h1>Climbing</h1>
+  <p class="sub">Logging this moves pulling work down today's queue and floats legs, hips, core and balance up.</p>
+  <label>Style</label>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    ${CLIMB_STYLES.map(s=>`<button class="chip sm ${draft.style===s?'on':''}" style="flex:1 1 30%" onclick="draft.style='${s}';render()">${s}</button>`).join("")}
+  </div>
+  <label>Minutes</label>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    ${[60,90,120,180,240].map(m=>`<button class="chip sm ${draft.minutes===m?'on':''}" style="flex:1 1 18%" onclick="draft.minutes=${m};render()">${m}</button>`).join("")}
+  </div>
+  <input type="number" inputmode="numeric" placeholder="or type minutes" value="${draft.minutes}" oninput="draft.minutes=+this.value">
+  <label>Note</label>
+  <input placeholder="grades, how it felt, anything" value="${draft.note}" oninput="draft.note=this.value">
+  <button class="btn" onclick="saveClimb()">Save</button>
+  <button class="btn ghost" onclick="go('today')">Cancel</button>`;
+}
+function saveClimb(){
+  S.sessions.push({date:today(),kind:"climb",style:draft.style,minutes:draft.minutes,
+    items:[{catId:"climb",rung:0,done:true,quality:"clean",note:`${draft.style} · ${draft.minutes} min${draft.note?" · "+draft.note:""}`}]});
+  S.climbDate=today();save();go("today");
+}
+
+function vCardio(){
+  return `<p class="eyebrow">Log</p><h1>Cardio</h1>
+  <label>Activity</label>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    ${CARDIO_ACTS.map(a=>`<button class="chip sm ${draft.activity===a?'on':''}" style="flex:1 1 30%" onclick="draft.activity='${a}';render()">${a}</button>`).join("")}
+  </div>
+  <label>Minutes</label>
+  <div class="row" style="flex-wrap:wrap;gap:7px">
+    ${[15,20,30,45,60].map(m=>`<button class="chip sm ${draft.minutes===m?'on':''}" style="flex:1 1 18%" onclick="draft.minutes=${m};render()">${m}</button>`).join("")}
+  </div>
+  <input type="number" inputmode="numeric" placeholder="or type minutes" value="${draft.minutes}" oninput="draft.minutes=+this.value">
+  <label>Distance — optional</label>
+  <input placeholder="e.g. 5 km, 3 mi, 40 floors" value="${draft.distance}" oninput="draft.distance=this.value">
+  <label>Note</label>
+  <input placeholder="pace, effort, anything" value="${draft.note}" oninput="draft.note=this.value">
+  <button class="btn" onclick="saveCardio()">Save</button>
+  <button class="btn ghost" onclick="go('today')">Cancel</button>`;
+}
+function saveCardio(){
+  S.sessions.push({date:today(),kind:"cardio",activity:draft.activity,minutes:draft.minutes,distance:draft.distance,
+    items:[{catId:"cardio",rung:S.cats.find(c=>c.id==="cardio").rung,done:true,quality:"clean",
+      note:`${draft.activity} · ${draft.minutes} min${draft.distance?" · "+draft.distance:""}${draft.note?" · "+draft.note:""}`}]});
+  save();go("today");
+}
+
 function toggleClimb(){S.climbDate=climbing()?null:today();save();render()}
 function levelUp(id){
   const c=S.cats.find(x=>x.id===id);c.rung++;save();render();
@@ -382,17 +478,18 @@ function vSession(){
     const c=S.cats.find(x=>x.id===it.catId);
     return `<div class="card ${it.done?'sel':''}">
       <div class="cname">${c.name}</div>
-      <div class="crung">${c.ladder[it.rung]}</div>
+      <div class="crung">${rungText(c,it.rung)}</div>
       <p class="dim" style="margin-top:7px">${c.cue}</p>
-      <label>How did the joint feel?</label>
+      <label>How did that feel?</label>
       <div class="row" style="margin-top:8px">
-        <button class="chip sm ${it.quality==='clean'?'on':''}" onclick="setQ(${ix},'clean')">Controlled</button>
+        <button class="chip sm ${it.quality==='clean'?'on':''}" onclick="setQ(${ix},'clean')">Strong &amp; controlled</button>
         <button class="chip sm ${it.quality==='shaky'?'on':''}" onclick="setQ(${ix},'shaky')">Shaky</button>
-        <button class="chip sm ${it.done===false&&it.quality==='skip'?'on':''}" onclick="setQ(${ix},'skip')">Didn't do it</button>
+        <button class="chip sm ${it.quality==='skip'?'on':''}" onclick="setQ(${ix},'skip')">Didn't do it</button>
       </div>
       <input placeholder="note — load, reps, anything" value="${it.note}" oninput="draft.items[${ix}].note=this.value">
     </div>`}).join("")}
-  <h2>Anything hurt?</h2>
+  <h2>Anything sore or uncomfortable?</h2>
+  <p class="sub" style="margin-bottom:10px">Optional, and separate from how the sets felt. Only worth logging if something's actually bothering you.</p>
   <div class="row" style="flex-wrap:wrap">
     <button class="chip sm ${draft.pain===null?'on':''}" onclick="draft.pain=null;render()" style="flex:1 1 30%">No</button>
     ${AREAS.map(a=>`<button class="chip sm ${draft.pain===a?'on':''}" onclick="draft.pain='${a}';render()" style="flex:1 1 30%">${a}</button>`).join("")}
@@ -412,7 +509,7 @@ function finish(){
 }
 function quickLog(id){
   const c=S.cats.find(x=>x.id===id);
-  if(!confirm(`Log: ${c.ladder[c.rung]}?`))return;
+  if(!confirm(`Log: ${rungText(c)}?`))return;
   S.sessions.push({date:today(),items:[{catId:id,rung:c.rung,done:true,quality:"clean",note:""}]});
   save();render();
 }
@@ -466,9 +563,17 @@ function vProg(){
   </svg>
   <p class="dim">Eight weeks. Rightmost is this week.</p>
 
+  <h2>Climbing &amp; cardio</h2>
+  ${(()=>{const r=S.sessions.filter(s=>s.kind==="climb"||s.kind==="cardio").slice(-8).reverse();
+    return r.length?r.map(s=>`<div class="stat">
+      <span><span class="muted">${s.kind==="climb"?s.style:s.activity}</span><br>
+      <span class="dim mono">${s.date}</span></span>
+      <b class="mono">${s.minutes} min${s.distance?" · "+s.distance:""}</b></div>`).join("")
+      :`<p class="dim">Nothing logged yet.</p>`})()}
+
   <h2>Where you are</h2>
   ${S.cats.filter(c=>c.group==="s").map(c=>`<div class="stat">
-    <span><span class="muted">${c.name}</span><br><span class="dim mono">${c.ladder[c.rung]}</span></span>
+    <span><span class="muted">${c.name}</span><br><span class="dim mono">${rungText(c)}</span></span>
     <b class="dim">${sessionsAtRung(c)}×</b></div>`).join("")}
 
   <h2>Joint signals</h2>
